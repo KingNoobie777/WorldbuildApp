@@ -1,0 +1,12 @@
+{
+  "name": "Zyntherra Worldbuilder",
+  "short_name": "Zyntherra",
+  "description": "Editable fantasy map and worldbuilding studio",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#111a17",
+  "theme_color": "#111a17",
+  "icons": []
+}
