@@ -1,7 +1,7 @@
 {
-  "name": "Zyntherra Worldbuilder",
-  "short_name": "Zyntherra",
-  "description": "Editable fantasy map and worldbuilding studio",
+  "name": "WorldbuildApp — Atlas Studio",
+  "short_name": "Worldbuild",
+  "description": "Procedural fantasy worldbuilding and cartography studio",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
