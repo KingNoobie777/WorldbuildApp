@@ -1,5 +1,5 @@
 const BASE = new URL('./', self.registration.scope).pathname;
-const CACHE = 'zyntherra-worldbuilder-v2';
+const CACHE = 'worldbuildapp-v3';
 const INDEX = BASE;
 const MANIFEST = BASE + 'manifest.webmanifest';
 self.addEventListener('install', event => {
