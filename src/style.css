@@ -32,3 +32,14 @@
  .draft-tag{font-size:7px;padding:2px 4px}.map-tools .icon-btn{width:28px;height:28px}
  .leftbar{left:4px;right:4px;gap:2px}.leftbar .tool{flex-basis:39px;min-width:39px;width:39px}
 }
+
+/* Water body editing and collapsible inspector */
+.water-controls{padding:11px;background:#1d2b23;border:1px solid #3a4b3c;border-radius:5px;display:flex;flex-direction:column;gap:12px}
+.water-heading{display:flex;align-items:center;gap:7px;color:#9fc8cc;font:9px 'DM Mono',monospace;letter-spacing:1px}
+.water-controls label{display:flex;flex-direction:row;align-items:center;flex-wrap:wrap;gap:8px;color:#b4c0b3}
+.water-controls label span{margin-left:auto;font:9px 'DM Mono',monospace;color:#9fc8cc}
+.water-controls input[type=range]{flex-basis:100%;width:100%;accent-color:#7daeb6;padding:0;border:0;background:transparent}
+.right-panel{transition:transform .2s ease}
+.right-panel.panel-hidden{transform:translateX(105%);pointer-events:none}
+.inspector-toggle{display:inline-grid}
+@media(max-width:760px){.right-panel.panel-hidden{transform:translateX(105%)}.inspector-toggle{display:inline-grid}}
