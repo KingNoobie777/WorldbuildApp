@@ -4,7 +4,7 @@ A browser-based fantasy cartography and worldbuilding editor. The public app ope
 
 ## Features
 
-- **Procedural worlds:** generate a new world from a random seed. The seed is shown in the header/status area.
+- **Procedural worlds:** generate a new world from a random seed, or enter a specific integer seed to reproduce the same layout. The active seed is shown in the header/status area.
 - **Zyntherra preset:** select **Load Zyntherra** to replace the current map with the bundled editable interpretation of Zyntherra.
 - **Editable map features:** regions, water bodies, rivers, mountains, forests, cities, villages, roads and labels.
 - **Layer visibility:** independently toggle geographic feature categories without deleting data. Rendering order is explicit so land renders beneath water, vegetation, rivers, roads, mountains and settlements.
