@@ -46,3 +46,7 @@
 
 /* Reliable touch editing on phones */
 .world-svg{touch-action:none;user-select:none;-webkit-user-select:none;cursor:crosshair}.world-svg g{touch-action:none}.world-svg text{user-select:none;-webkit-user-select:none;pointer-events:none}
+
+/* Editable geography path field */
+.path-editor{font-family:'DM Mono',monospace!important;font-size:10px!important;line-height:1.55;min-height:92px!important;resize:vertical;overflow-wrap:anywhere}
+.field-help{font-size:9px;line-height:1.5;color:#8f9e90}
