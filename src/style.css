@@ -43,3 +43,6 @@
 .right-panel.panel-hidden{transform:translateX(105%);pointer-events:none}
 .inspector-toggle{display:inline-grid}
 @media(max-width:760px){.right-panel.panel-hidden{transform:translateX(105%)}.inspector-toggle{display:inline-grid}}
+
+/* Reliable touch editing on phones */
+.world-svg{touch-action:none;user-select:none;-webkit-user-select:none;cursor:crosshair}.world-svg g{touch-action:none}.world-svg text{user-select:none;-webkit-user-select:none;pointer-events:none}
