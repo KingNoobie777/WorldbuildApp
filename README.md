@@ -48,3 +48,9 @@ World project JSON contains a versioned project object with a title, optional se
 ## Licence
 
 No licence is currently declared in this repository. Public visibility on GitHub does not automatically grant permission to reuse or redistribute the source. Add an explicit licence before accepting outside contributions or inviting others to reuse the code.
+
+## Customization
+
+The **Style** tab includes quick visual themes (Parchment, Oceanic, Dark fantasy and Soft atlas), individual color pickers for the paper, land, water, forests, rivers, roads, outlines, labels and accents, label size and font controls, and toggles for the title, compass rose, north marker, paper texture, feature labels and editor grid. Style choices are saved with the project and exported in project JSON.
+
+Select any map feature to customize its color and size; mountains, cities and villages can also be rotated. Use **Reset feature style** to restore its default appearance, or **Reset style** to restore the global map palette.
