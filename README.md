@@ -1,14 +1,30 @@
-# Zyntherra Worldbuilder
+# WorldbuildApp
 
-An editable, browser-based 2D fantasy cartography workspace for the world of **Zyntherra**. The first milestone prioritises a fast, flat map with editable features and a restrained parchment-and-forest visual style.
+A browser-based fantasy cartography and worldbuilding editor. The public app opens with a procedurally generated world; **Zyntherra is an optional preset**, loaded explicitly from the World settings panel.
 
-## Current prototype
+## Features
 
-- Editable map features: regions, water bodies, rivers, mountains, forests, cities, villages, roads and labels.
-- Inspector for names, coordinates and lore notes.
-- Feature visibility layers, search, zoom, undo/redo and browser autosave.
-- Export the map as SVG, PNG, or a structured JSON project.
-- No backend, API key, WebGL, or account required; project data stays in browser storage unless exported.
+- **Procedural worlds:** generate a new world from a random seed, or enter a specific integer seed to reproduce the same layout. The active seed is shown in the header/status area.
+- **Zyntherra preset:** select **Load Zyntherra** to replace the current map with the bundled editable interpretation of Zyntherra.
+- **Editable map features:** regions, water bodies, rivers, mountains, forests, cities, villages, roads and labels.
+- **Layer visibility:** independently toggle geographic feature categories without deleting data. Rendering order is explicit so land renders beneath water, vegetation, rivers, roads, mountains and settlements.
+- **Tracing reference image:** import a PNG, JPEG, WebP or other browser-readable image (maximum upload size 6 MB). The image is resized/compressed in the browser, shown beneath editable map features, and can be dragged, hidden, locked, repositioned, resized and faded with an opacity slider.
+- **Reference images are not part of map exports:** PNG/SVG exports contain the editable map only. Project JSON includes the reference image so the project can be reopened with its tracing setup intact.
+- **Project files:** save a .worldbuild.json file, open it later, or share it with another user.
+- **Undo/redo, feature inspector, search, zoom, grid, SVG/PNG export, and local autosave.**
+- No backend or API key required. The app stores its current project in browser local storage.
+
+## Use the app
+
+1. Open the deployed app or run it locally.
+2. The first launch creates a random world. Use **Generate random world** to replace it.
+3. Use **Load Zyntherra** only when you want to work on that preset.
+4. To trace an existing map, open **Layers → Tracing reference → Import image**. Lower the opacity, drag the image into place while unlocked, then lock it and draw features over it.
+5. Use **Save project** or **Export → World project JSON** to keep a portable copy. Browser storage is not a substitute for backups.
+
+### Reference image notes
+
+The tracing image is a special editor-only layer, not geographic data. It is intentionally excluded from PNG and SVG map exports. The project JSON includes the image data; image optimization helps reduce storage use, but browser storage quotas still apply. Export the project if the browser reports that local storage is full.
 
 ## Run locally
 
@@ -19,24 +35,22 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. To create a production build, run `npm run build`.
+Open the local URL printed by Vite. To create a production build, run:
 
-## Important map/canon note
+```bash
+npm run build
+```
 
-The included starter geography is a **stylised editable interpretation** of the supplied hand-drawn map, not a final tracing. Known region labels transcribed from the image include Xethis, Zunda, Sylvaria, Varelis, Ryki, Vaerola, Drunei, Mighnabo, Adanaiza, Dajpan and Tikebau. Please review spellings such as Mighnabo and Tikebau against the original. The lakes and river paths are illustrative placeholders because the source map marks water as suggestions; replace and refine them in the editor. Unconfirmed lore has deliberately not been added.
+## Project data
 
-## Roadmap
-
-1. **Foundation (current):** editing, local save, layers, basic exports.
-2. **Geography:** improved coastlines, editable path control points, terrain/elevation painting, water/river network tools, procedural generation with a seed.
-3. **Physical map:** elevation shading, biome palette, contour and hillshade overlays; fast 2D renderer.
-4. **Publishing:** named export presets for political, physical, biome, landmass-only, water-only, settlement and road maps; atlas sheets and legend.
-5. **Optional 3D:** a separate terrain preview built from the same elevation data.
-
-## Data format
-
-JSON stores a `features` array. Each feature has a stable ID, kind, name, map coordinates and optional path/notes. Keep lore and geography editable as data, not baked into a flattened image.
+World project JSON contains a versioned project object with a title, optional seed, a features array, and optional referenceImage data. Geographic features remain editable data rather than being flattened into a single image.
 
 ## Licence
 
-Private repository. Add a licence before distributing publicly.
+No licence is currently declared in this repository. Public visibility on GitHub does not automatically grant permission to reuse or redistribute the source. Add an explicit licence before accepting outside contributions or inviting others to reuse the code.
+
+## Customization
+
+The **Style** tab includes quick visual themes (Parchment, Oceanic, Dark fantasy and Soft atlas), individual color pickers for the paper, land, water, forests, rivers, roads, outlines, labels and accents, label size and font controls, and toggles for the title, compass rose, north marker, paper texture, feature labels and editor grid. Style choices are saved with the project and exported in project JSON.
+
+Select any map feature to customize its color and size; mountains, cities and villages can also be rotated. Use **Reset feature style** to restore its default appearance, or **Reset style** to restore the global map palette.
