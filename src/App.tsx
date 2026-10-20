@@ -64,25 +64,124 @@ function fantasyName(rng:()=>number){
  const b=['anor','ara','bar','dell','dor','en','eth','fall','garde','ia','ion','mere','or','ryn','thas','vale','wyn','yra'];
  return pick(rng,a)+pick(rng,b);
 }
-function makeLandPath(rng:()=>number,cx:number,cy:number,rx:number,ry:number){
- const count=12+Math.floor(rng()*7); const pts:{x:number;y:number}[]=[];
- for(let i=0;i<count;i++){const a=(Math.PI*2*i/count);const jitter=.76+rng()*.48;pts.push({x:Math.max(24,Math.min(876,cx+Math.cos(a)*rx*jitter)),y:Math.max(35,Math.min(665,cy+Math.sin(a)*ry*jitter))});}
- return 'M '+pts.map(p=>p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' L ')+' Z';
+type Point={x:number;y:number};
+function smoothClosedPath(points:Point[]){
+ if(points.length<3)return '';
+ const mids=points.map((p,i)=>({x:(p.x+points[(i+1)%points.length].x)/2,y:(p.y+points[(i+1)%points.length].y)/2}));
+ let d='M '+mids[mids.length-1].x.toFixed(1)+' '+mids[mids.length-1].y.toFixed(1);
+ points.forEach((p,i)=>{d+=' Q '+p.x.toFixed(1)+' '+p.y.toFixed(1)+' '+mids[i].x.toFixed(1)+' '+mids[i].y.toFixed(1);});
+ return d+' Z';
+}
+function valueNoise(x:number,y:number,seed:number){
+ const hash=(ix:number,iy:number)=>{let n=Math.imul(ix,374761393)+Math.imul(iy,668265263)+Math.imul(seed|0,1442695041);n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/2147483647.5-1;};
+ const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy;
+ const sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);
+ const a=hash(ix,iy),b=hash(ix+1,iy),c=hash(ix,iy+1),d=hash(ix+1,iy+1);
+ const top=a+(b-a)*sx,bot=c+(d-c)*sx;
+ return top+(bot-top)*sy;
+}
+function terrainNoise(x:number,y:number,seed:number){
+ return valueNoise(x/150,y/150,seed)*.58+valueNoise(x/68,y/68,seed+17)*.29+valueNoise(x/30,y/30,seed+41)*.13;
+}
+type LandMass={cx:number;cy:number;rx:number;ry:number;angle:number;weight:number};
+function makeTerrainField(seed:number,rng:()=>number){
+ const masses:LandMass[]=[];
+ const count=1+Math.floor(rng()*3);
+ const anchorX=280+rng()*340,anchorY=230+rng()*220;
+ for(let i=0;i<count;i++){
+  const angle=rng()*Math.PI*2,dist=i===0?0:70+rng()*135;
+  masses.push({cx:Math.max(100,Math.min(800,anchorX+Math.cos(angle)*dist)),cy:Math.max(100,Math.min(600,anchorY+Math.sin(angle)*dist)),rx:145+rng()*105,ry:115+rng()*105,angle:(rng()-.5)*.9,weight:.82+rng()*.28});
+ }
+ const field=(x:number,y:number)=>{
+  let land=-2;
+  for(const m of masses){const dx=x-m.cx,dy=y-m.cy,ca=Math.cos(m.angle),sa=Math.sin(m.angle);const u=(dx*ca+dy*sa)/m.rx,v=(-dx*sa+dy*ca)/m.ry;const radial=1-Math.sqrt(u*u+v*v);land=Math.max(land,radial*m.weight);}
+  const edge=Math.min(x,MAP_W-x,y,MAP_H-y);
+  const edgeFade=Math.min(1,edge/42);
+  return land+terrainNoise(x,y,seed)*.24-(1-edgeFade)*.45;
+ };
+ return {field,masses};
+}
+function contourLand(field:(x:number,y:number)=>number,step=12){
+ const cols=Math.ceil(MAP_W/step),rows=Math.ceil(MAP_H/step);
+ const grid:number[][]=Array.from({length:rows+1},(_,j)=>Array.from({length:cols+1},(_,i)=>field(Math.min(MAP_W,i*step),Math.min(MAP_H,j*step))));
+ const segments:{a:Point;b:Point}[]=[];
+ for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+  const x=i*step,y=j*step;
+  const v=[grid[j][i],grid[j][i+1],grid[j+1][i+1],grid[j+1][i]];
+  const p=[{x,y},{x:Math.min(MAP_W,x+step),y},{x:Math.min(MAP_W,x+step),y:Math.min(MAP_H,y+step)},{x,y:Math.min(MAP_H,y+step)}];
+  const edges:[[number,number],[number,number],[number,number],[number,number]]=[[0,1],[1,2],[2,3],[3,0]];
+  const crossings:Point[]=[];
+  for(const [a,b] of edges)if((v[a]>=0)!==(v[b]>=0)){const t=v[a]/(v[a]-v[b]);crossings.push({x:p[a].x+(p[b].x-p[a].x)*t,y:p[a].y+(p[b].y-p[a].y)*t});}
+  if(crossings.length===2)segments.push({a:crossings[0],b:crossings[1]});
+  else if(crossings.length===4){const center=(v[0]+v[1]+v[2]+v[3])/4;if((v[0]>=0)===(center>=0)){segments.push({a:crossings[0],b:crossings[3]},{a:crossings[1],b:crossings[2]});}else{segments.push({a:crossings[0],b:crossings[1]},{a:crossings[2],b:crossings[3]});}}
+ }
+ const key=(p:Point)=>Math.round(p.x*10)+','+Math.round(p.y*10);
+ const adjacency=new Map<string,number[]>();
+ segments.forEach((s,i)=>{for(const p of [s.a,s.b]){const k=key(p),arr=adjacency.get(k)||[];arr.push(i);adjacency.set(k,arr);}});
+ const used=new Set<number>(),loops:Point[][]=[];
+ for(let si=0;si<segments.length;si++){
+  if(used.has(si))continue;
+  const seg=segments[si];used.add(si);const loop=[seg.a,seg.b];let current=seg.b,guard=0;
+  while(guard++<segments.length+2){
+   const candidates=(adjacency.get(key(current))||[]).filter(n=>!used.has(n));
+   if(!candidates.length)break;
+   const next=segments[candidates[0]];used.add(candidates[0]);current=key(next.a)===key(current)?next.b:next.a;loop.push(current);
+   if(key(current)===key(loop[0]))break;
+  }
+  if(loop.length>=10&&key(loop[0])===key(loop[loop.length-1])){loop.pop();loops.push(loop);}
+ }
+ return loops.filter(loop=>Math.abs(loop.reduce((sum,p,i)=>{const q=loop[(i+1)%loop.length];return sum+p.x*q.y-q.x*p.y;},0)/2)>500);
+}
+function makeOrganicBlob(rng:()=>number,cx:number,cy:number,rx:number,ry:number){
+ const pts:Point[]=[],n=18+Math.floor(rng()*8),phase=rng()*Math.PI*2;
+ for(let i=0;i<n;i++){const a=i*Math.PI*2/n;const wave=1+.13*Math.sin(a*3+phase)+.08*Math.sin(a*5+phase*1.7)+(rng()-.5)*.14;pts.push({x:Math.max(8,Math.min(MAP_W-8,cx+Math.cos(a)*rx*wave)),y:Math.max(8,Math.min(MAP_H-8,cy+Math.sin(a)*ry*wave))});}
+ return smoothClosedPath(pts);
 }
 function generateWorld(seed:number):WorldProject{
- const rng=mulberry32(seed);const features:Feature[]=[];const count=3+Math.floor(rng()*3);
- for(let i=0;i<count;i++){
-   const cx=125+rng()*650,cy=135+rng()*440,rx=55+rng()*95,ry=45+rng()*100;
-   const name=fantasyName(rng);
-   features.push({id:'land-'+i,kind:'region',name,x:cx,y:cy,points:makeLandPath(rng,cx,cy,rx,ry)});
-   const settlements=1+Math.floor(rng()*3);
-   for(let j=0;j<settlements;j++){const sx=Math.max(25,Math.min(875,cx+(rng()-.5)*rx*1.15)),sy=Math.max(40,Math.min(660,cy+(rng()-.5)*ry*1.15));features.push({id:'city-'+i+'-'+j,kind:j===0?'city':'village',name:fantasyName(rng),x:sx,y:sy});}
-   if(rng()>.2)features.push({id:'forest-'+i,kind:'forest',name:fantasyName(rng)+' Woods',x:Math.max(25,cx-rx*.35),y:Math.max(40,cy+ry*.2),points:makeLandPath(rng,cx-rx*.35,cy+ry*.2,rx*.27,ry*.24)});
-   const mx=Math.max(30,Math.min(870,cx+(rng()-.5)*rx)),my=Math.max(45,Math.min(655,cy+(rng()-.5)*ry));
-   for(let j=0;j<2+Math.floor(rng()*4);j++)features.push({id:'mountain-'+i+'-'+j,kind:'mountain',name:fantasyName(rng)+' Peak',x:Math.max(20,Math.min(880,mx+(rng()-.5)*rx)),y:Math.max(35,Math.min(665,my+(rng()-.5)*ry))});
-   if(rng()>.25){const sx=Math.max(20,cx-rx*.45),sy=Math.max(35,cy-ry*.55);features.push({id:'river-'+i,kind:'river',name:fantasyName(rng)+' River',x:cx,y:cy,points:`M ${sx.toFixed(1)} ${sy.toFixed(1)} Q ${(cx-rx*.3).toFixed(1)} ${(cy-ry*.3).toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)} T ${(Math.min(875,cx+rx*.55)).toFixed(1)} ${Math.min(665,cy+ry*.6).toFixed(1)}`});}
+ const rng=mulberry32(seed);const features:Feature[]=[];const {field,masses}=makeTerrainField(seed,rng);
+ const contours=contourLand(field);
+ const landLoops=contours.length?contours:[[{x:180,y:200},{x:300,y:140},{x:450,y:180},{x:550,y:300},{x:430,y:480},{x:250,y:430}]];
+ const landAt=(x:number,y:number)=>field(x,y)>0.04;
+ const landPoints:Point[]=[];
+ for(let y=65;y<MAP_H-35;y+=18)for(let x=30;x<MAP_W-30;x+=18)if(landAt(x,y))landPoints.push({x,y});
+ landLoops.sort((a,b)=>Math.abs(b.reduce((s,p,i)=>s+p.x*b[(i+1)%b.length].y-b[(i+1)%b.length].x*p.y,0))-Math.abs(a.reduce((s,p,i)=>s+p.x*a[(i+1)%a.length].y-a[(i+1)%a.length].x*p.y,0)));
+ landLoops.forEach((loop,i)=>{
+  const cx=loop.reduce((s,p)=>s+p.x,0)/loop.length,cy=loop.reduce((s,p)=>s+p.y,0)/loop.length;
+  features.push({id:'continent-'+i,kind:'region',name:fantasyName(rng)+(i===0?' Reach':' Isles'),x:cx,y:cy,points:smoothClosedPath(loop)});
+ });
+ if(!landPoints.length)landPoints.push({x:450,y:350});
+ const onLand=()=>pick(rng,landPoints);
+ // Mountain chains follow broad, continuous arcs rather than isolated random triangles.
+ const rangeCount=Math.max(1,masses.length+Math.floor(rng()*2));
+ for(let r=0;r<rangeCount;r++){
+  const m=masses[r%masses.length],angle=m.angle+(rng()-.5)*1.2;
+  const start={x:m.cx-Math.cos(angle)*m.rx*.62,y:m.cy-Math.sin(angle)*m.ry*.62};
+  const finish={x:m.cx+Math.cos(angle)*m.rx*.62,y:m.cy+Math.sin(angle)*m.ry*.62};
+  const n=7+Math.floor(rng()*8);
+  for(let j=0;j<n;j++){const t=(j+(rng()-.5)*.45)/n;const x=start.x+(finish.x-start.x)*t+(rng()-.5)*34,y=start.y+(finish.y-start.y)*t+(rng()-.5)*34;if(landAt(x,y))features.push({id:'mountain-'+r+'-'+j,kind:'mountain',name:fantasyName(rng)+' Peak',x,y,size:.85+rng()*.7,rotation:Math.round(rng()*40-20)});}
  }
- for(let i=0;i<3+Math.floor(rng()*5);i++){const x=30+rng()*840,y=45+rng()*610;features.push({id:'island-'+i,kind:'region',name:fantasyName(rng),x,y,points:makeLandPath(rng,x,y,10+rng()*24,8+rng()*25)});}
+ // Lakes are placed inland and given curved shorelines.
+ for(let i=0;i<2+Math.floor(rng()*4);i++){
+  let p=onLand();for(let tries=0;tries<30&&!landAt(p.x,p.y);tries++)p=onLand();
+  const rx=9+rng()*19,ry=7+rng()*15;
+  features.push({id:'lake-'+i,kind:'water',name:fantasyName(rng)+' Lake',x:p.x,y:p.y,points:makeOrganicBlob(rng,p.x,p.y,rx,ry),rx:1,ry:1});
+ }
+ // Forest regions use irregular closed curves and stay on land.
+ for(let i=0;i<4+Math.floor(rng()*7);i++){
+  const p=onLand(),rx=18+rng()*35,ry=12+rng()*28;
+  features.push({id:'forest-'+i,kind:'forest',name:fantasyName(rng)+' Wood',x:p.x,y:p.y,points:makeOrganicBlob(rng,p.x,p.y,rx,ry)});
+ }
+ // Rivers begin inland and follow a meandering downhill path toward a nearby coast.
+ for(let i=0;i<2+Math.floor(rng()*4);i++){
+  const start=onLand();let x=start.x,y=start.y;const pts:Point[]=[{x,y}];let prevAngle=rng()*Math.PI*2;
+  for(let j=0;j<9;j++){let best:{x:number;y:number;score:number}|null=null;for(let k=0;k<9;k++){const a=prevAngle+(k-4)*.34,tx=x+Math.cos(a)*15,ty=y+Math.sin(a)*15;if(tx<8||tx>MAP_W-8||ty<8||ty>MAP_H-8)continue;const score=field(tx,ty)+Math.abs(a-prevAngle)*.18+(rng()*.045);if(!best||score<best.score)best={x:tx,y:ty,score};}if(!best)break;x=best.x;y=best.y;prevAngle=Math.atan2(y-pts[pts.length-1].y,x-pts[pts.length-1].x);pts.push({x,y});if(!landAt(x,y))break;}
+  if(pts.length>=4){let d='M '+pts[0].x.toFixed(1)+' '+pts[0].y.toFixed(1);for(let j=1;j<pts.length-1;j++){const mx=(pts[j].x+pts[j+1].x)/2,my=(pts[j].y+pts[j+1].y)/2;d+=' Q '+pts[j].x.toFixed(1)+' '+pts[j].y.toFixed(1)+' '+mx.toFixed(1)+' '+my.toFixed(1);}d+=' L '+pts[pts.length-1].x.toFixed(1)+' '+pts[pts.length-1].y.toFixed(1);features.push({id:'river-'+i,kind:'river',name:fantasyName(rng)+' River',x:start.x,y:start.y,points:d,size:.7+rng()*.5});}
+ }
+ // Settlements are separated and restricted to the land field.
+ const settlementCount=5+Math.floor(rng()*8),placed:Point[]=[];
+ for(let i=0;i<settlementCount;i++){let p=onLand(),tries=0;while(tries++<45&&placed.some(q=>Math.hypot(q.x-p.x,q.y-p.y)<42))p=onLand();placed.push(p);features.push({id:'settlement-'+i,kind:i%3===0?'city':'village',name:fantasyName(rng),x:p.x,y:p.y});}
+ // Add a few small offshore islands as their own organic landforms.
+ for(let i=0;i<3+Math.floor(rng()*6);i++){const x=20+rng()*860,y=25+rng()*650;if(landAt(x,y))continue;const rx=5+rng()*16,ry=4+rng()*12;features.push({id:'island-'+i,kind:'region',name:fantasyName(rng)+' Isle',x,y,points:makeOrganicBlob(rng,x,y,rx,ry)});}
  return {title:'Untitled World',version:2,seed,features,appearance:{...DEFAULT_APPEARANCE}};
 }
 function makeZyntherra():WorldProject{return {title:'Zyntherra',version:2,seed:null,features:zyntherraFeatures.map(f=>({...f})),appearance:{...DEFAULT_APPEARANCE},referenceImage:null};}
